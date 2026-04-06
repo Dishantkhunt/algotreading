@@ -1371,4 +1371,4 @@ if __name__ == '__main__':
     print()
     print("  Open: http://localhost:5052")
     print("="*60)
-  import os port = int(os.environ.get("PORT", 5052)) app.run(debug=False, host="0.0.0.0", port=port)
+  bt.plot(filename=f"{symbol}_report.html", open_browser=False)
