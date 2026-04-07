@@ -458,6 +458,33 @@ tbody td{padding:4px 8px;}
 .toast{position:fixed;bottom:16px;right:16px;background:var(--sf);border:1px solid var(--bd);border-radius:8px;padding:9px 14px;font-family:'Space Mono',monospace;font-size:10px;z-index:9999;transform:translateX(160%);transition:transform .3s;}
 .toast.on{transform:translateX(0);}
 .toast.bt{border-color:var(--gn);} .toast.st{border-color:var(--rd);}
+/* Backtest modal */
+.bt-modal-bg{position:fixed;inset:0;background:rgba(4,8,15,.88);z-index:500;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+.bt-modal-bg.on{display:flex;}
+.bt-modal{background:var(--sf);border:1px solid var(--bd);border-radius:14px;width:92vw;max-width:1100px;height:86vh;display:flex;flex-direction:column;overflow:hidden;}
+.bt-mhead{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-bottom:1px solid var(--bd);background:var(--sf2);flex-shrink:0;}
+.bt-mtitle{font-size:14px;font-weight:800;color:var(--ac);}
+.bt-mclose{background:transparent;border:1px solid var(--bd);color:var(--mt);border-radius:5px;padding:3px 10px;cursor:pointer;font-size:13px;}
+.bt-mclose:hover{border-color:var(--rd);color:var(--rd);}
+.bt-body{display:grid;grid-template-columns:230px 1fr;flex:1;min-height:0;overflow:hidden;}
+.bt-controls{background:var(--sf2);border-right:1px solid var(--bd);padding:12px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;}
+.bt-chart-wrap{display:flex;flex-direction:column;overflow:hidden;}
+.bt-chart-area{flex:1;position:relative;min-height:0;}
+#bt-chart{width:100%;height:100%;}
+.bt-log{height:130px;border-top:1px solid var(--bd);overflow-y:auto;background:var(--sf3);}
+.bt-log table{width:100%;border-collapse:collapse;font-family:'Space Mono',monospace;font-size:8px;}
+.bt-log thead th{background:var(--sf2);color:var(--mt);text-align:left;padding:4px 8px;font-size:7px;letter-spacing:1px;position:sticky;top:0;border-bottom:1px solid var(--bd);}
+.bt-log tbody tr{border-bottom:1px solid rgba(26,45,69,.3);}
+.bt-log tbody tr:hover{background:var(--sf2);}
+.bt-log tbody td{padding:4px 8px;}
+.bt-totbar{display:flex;border-top:1px solid var(--bd);background:var(--sf2);flex-shrink:0;}
+.bt-tc{flex:1;padding:4px 8px;border-right:1px solid var(--bd);}
+.bt-tc:last-child{border-right:none;}
+.bt-tcl{font-size:6px;color:var(--mt);letter-spacing:1px;text-transform:uppercase;font-family:'Space Mono',monospace;}
+.bt-tcv{font-size:10px;font-weight:800;font-family:'Space Mono',monospace;margin-top:1px;}
+.bt-pb{height:3px;background:var(--bd);border-radius:2px;overflow:hidden;margin-top:3px;}
+.bt-pf{height:100%;background:linear-gradient(90deg,var(--ac),var(--gn));width:0%;transition:width .15s;}
+.bt-pt{font-family:'Space Mono',monospace;font-size:8px;color:var(--mt);margin-top:2px;}
 /* Daily limit bar */
 .dlbar{background:var(--sf2);border:1px solid var(--bd);border-radius:5px;padding:6px 8px;}
 .dl-row{display:flex;justify-content:space-between;align-items:center;font-size:8px;font-family:'Space Mono',monospace;}
@@ -767,6 +794,92 @@ tbody td{padding:4px 8px;}
 </div><!-- /app -->
 
 <div class="toast" id="toast"></div>
+
+<!-- ══ BACKTEST MODAL ══ -->
+<div class="bt-modal-bg" id="btModal">
+  <div class="bt-modal">
+    <div class="bt-mhead">
+      <div class="bt-mtitle">📈 Backtest — <span id="bt-strat-name">Strategy</span></div>
+      <button class="bt-mclose" onclick="closeBT()">✕ Close</button>
+    </div>
+    <div class="bt-body">
+      <!-- Controls -->
+      <div class="bt-controls">
+        <div class="sl">📊 Setup</div>
+        <div class="ig"><label>TICKER</label><input id="bt-sym" value="SBIN.NS" placeholder="SBIN.NS / TCS.NS"></div>
+        <div class="r2">
+          <div class="ig"><label>START DATE</label><input type="date" id="bt-sd" value="2024-01-01"></div>
+          <div class="ig"><label>END DATE</label><input type="date" id="bt-ed" value="2025-01-01"></div>
+        </div>
+        <div class="r2">
+          <div class="ig"><label>CAPITAL ₹</label><input type="number" id="bt-cap" value="100000"></div>
+          <div class="ig"><label>TIMEFRAME</label>
+            <select id="bt-tf">
+              <option value="1m">1m</option>
+              <option value="5m" selected>5m</option>
+              <option value="15m">15m</option>
+              <option value="30m">30m</option>
+              <option value="60m">1h</option>
+              <option value="1d">1d</option>
+              <option value="1wk">1wk</option>
+            </select>
+          </div>
+        </div>
+        <div class="err" id="bt-err"></div>
+        <button class="bmain bbt" id="bt-load-btn" onclick="btLoad()" style="font-size:10px;padding:8px;">⬇ LOAD DATA</button>
+        <div class="dv"></div>
+        <div class="sl">▶ Playback</div>
+        <div class="cr">
+          <button class="bc" id="bt-play"  onclick="btPlay()"  disabled>▶</button>
+          <button class="bc" id="bt-pause" onclick="btPause()" disabled>⏸</button>
+          <button class="bc" id="bt-reset" onclick="btReset()" disabled>↺</button>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:6px;">
+          <span style="font-size:8px;color:var(--mt);font-family:'Space Mono',monospace;">SPEED</span>
+          <span style="font-size:8px;color:var(--ac);font-family:'Space Mono',monospace;font-weight:700;" id="bt-spd-lbl">Medium</span>
+        </div>
+        <input type="range" id="bt-spd" min="1" max="5" value="3" oninput="btSpdChange()">
+        <div class="bt-pb"><div class="bt-pf" id="bt-pf"></div></div>
+        <div class="bt-pt" id="bt-pt">Load data to begin</div>
+        <div class="dv"></div>
+        <div class="sl">📈 Results</div>
+        <div class="stg">
+          <div class="stc"><div class="sl2">Gross P&L</div><div class="sv" id="btg-gross">—</div></div>
+          <div class="stc"><div class="sl2">Charges</div><div class="sv neg" id="btg-chg">—</div></div>
+          <div class="stc"><div class="sl2">Net Profit</div><div class="sv gld" id="btg-net">—</div></div>
+          <div class="stc"><div class="sl2">Win Rate</div><div class="sv" id="btg-wr">—</div></div>
+          <div class="stc"><div class="sl2">Trades</div><div class="sv neu" id="btg-trd">0</div></div>
+          <div class="stc"><div class="sl2">Signals</div><div class="sv" id="btg-sig">0</div></div>
+        </div>
+      </div>
+      <!-- Chart + Log -->
+      <div class="bt-chart-wrap">
+        <div class="bt-chart-area">
+          <div id="bt-chart"></div>
+          <div class="ovl" id="bt-ovl">
+            <div style="font-size:28px;margin-bottom:8px;">📈</div>
+            <div style="font-size:13px;font-weight:800;margin-bottom:4px;">Backtest</div>
+            <div style="font-size:8px;color:var(--mt);font-family:'Space Mono',monospace;text-align:center;">Enter symbol + dates → Load Data → Press ▶</div>
+          </div>
+        </div>
+        <div class="bt-log">
+          <table>
+            <thead><tr><th>#</th><th>TYPE</th><th>DATE</th><th>PRICE</th><th>QTY</th><th>STOP</th><th>TARGET</th><th>CHARGES</th><th>GROSS P&L</th><th>TAX</th><th>NET P&L</th><th>EQUITY</th></tr></thead>
+            <tbody id="bt-tbody"><tr><td colspan="12" style="text-align:center;color:var(--mt);padding:10px;">Load data and press Play</td></tr></tbody>
+          </table>
+        </div>
+        <div class="bt-totbar">
+          <div class="bt-tc"><div class="bt-tcl">Brokerage</div><div class="bt-tcv neg" id="btt1">₹0</div></div>
+          <div class="bt-tc"><div class="bt-tcl">STT</div><div class="bt-tcv neg" id="btt2">₹0</div></div>
+          <div class="bt-tc"><div class="bt-tcl">All Charges</div><div class="bt-tcv neg" id="btt3">₹0</div></div>
+          <div class="bt-tc"><div class="bt-tcl">Capital Tax</div><div class="bt-tcv" id="btt4" style="color:var(--or)">₹0</div></div>
+          <div class="bt-tc"><div class="bt-tcl">Gross P&L</div><div class="bt-tcv" id="btt5">₹0</div></div>
+          <div class="bt-tc"><div class="bt-tcl">NET PROFIT</div><div class="bt-tcv gld" id="btt6">₹0</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script>
 // ══ STATE ═══════════════════════════════════════
@@ -1211,9 +1324,219 @@ async function sendTG(type,sym,price,qty,val,score,stop,target,ch){
   await window.fetch('/api/tg_send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:t,chat_id:c,message:m})});
 }
 
-// ── Backtest redirect ──────────────────────────────
+// ── Backtest Modal ─────────────────────────────────
+let btChart=null,btCS=null,btL1=null,btL2=null,btBBU=null,btBBL=null,btOSC=null;
+let btCandles=[],btSigs=[],btScores=[],btStops=[],btTargets=[],btInds={};
+let btIdx=0,btTimer=null,btOn=false;
+let btCap=100000,btEq=100000,btPos=null;
+let btTrd=0,btWin=0,btLos=0,btGross=0,btChg=0,btTax=0,btNet=0,btBrk=0,btSTT=0;
+let btMrk=[],btTrCount=0;
+const BT_SPEED={1:900,2:400,3:170,4:70,5:15};
+const BT_SNAMES={1:'Slow',2:'Slow+',3:'Medium',4:'Fast',5:'Ultra'};
+
 function runBacktest(){
-  toast('▶ Open BackTest Pro v4 (port 5051) to backtest this strategy','');
+  // Show modal, pre-fill symbol from live sidebar
+  const liveSym=document.getElementById('sym').value||'SBIN.NS';
+  document.getElementById('bt-sym').value=liveSym;
+  document.getElementById('bt-strat-name').textContent=SNAMES[curStrat];
+  document.getElementById('btModal').classList.add('on');
+  // Init chart inside modal if not done yet
+  if(!btChart){
+    const el=document.getElementById('bt-chart');
+    btChart=LightweightCharts.createChart(el,{
+      layout:{background:{color:'#04080f'},textColor:'#3d5a78'},
+      grid:{vertLines:{color:'#1a2d45'},horzLines:{color:'#1a2d45'}},
+      crosshair:{mode:LightweightCharts.CrosshairMode.Normal},
+      rightPriceScale:{borderColor:'#1a2d45'},
+      timeScale:{borderColor:'#1a2d45',timeVisible:true},
+      width:el.offsetWidth,height:el.offsetHeight,
+    });
+    btCS=btChart.addCandlestickSeries({
+      upColor:'#00e676',downColor:'#ff3d57',
+      borderUpColor:'#00e676',borderDownColor:'#ff3d57',
+      wickUpColor:'#00e676',wickDownColor:'#ff3d57',
+    });
+    window.addEventListener('resize',()=>{
+      if(btChart) btChart.applyOptions({width:el.offsetWidth,height:el.offsetHeight});
+    });
+  }
+}
+function closeBT(){
+  document.getElementById('btModal').classList.remove('on');
+  btPause();
+}
+function btSpdChange(){
+  const v=document.getElementById('bt-spd').value;
+  document.getElementById('bt-spd-lbl').textContent=BT_SNAMES[v];
+  if(btOn){btPause();btPlay();}
+}
+function btSetupLines(){
+  [btL1,btL2,btBBU,btBBL].forEach(s=>{if(s){try{btChart.removeSeries(s);}catch(e){}}});
+  btL1=btL2=btBBU=btBBL=null;
+  btL1=btChart.addLineSeries({color:'#ffd700',lineWidth:1.5,title:'VWAP'});
+  btL2=btChart.addLineSeries({color:'#00e5ff',lineWidth:1,title:'EMA5'});
+  btBBU=btChart.addLineSeries({color:'rgba(0,229,255,.3)',lineWidth:1,title:'BB Upper'});
+  btBBL=btChart.addLineSeries({color:'rgba(255,61,87,.3)',lineWidth:1,title:'BB Lower'});
+}
+async function btLoad(){
+  const sym=document.getElementById('bt-sym').value.trim().toUpperCase();
+  btCap=parseFloat(document.getElementById('bt-cap').value)||100000;
+  const start=document.getElementById('bt-sd').value;
+  const end=document.getElementById('bt-ed').value;
+  const tf=document.getElementById('bt-tf').value;
+  const thresh=parseInt(document.getElementById('thresh').value)||3;
+  document.getElementById('bt-err').style.display='none';
+  document.getElementById('bt-load-btn').disabled=true;
+  document.getElementById('bt-ovl').innerHTML=`<div class="spin"></div><div class="ovlt">Downloading ${sym}...</div>`;
+  document.getElementById('bt-ovl').classList.remove('hid');
+  try{
+    const r=await window.fetch('/api/backtest_hist',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({symbol:sym,start,end,capital:btCap,timeframe:tf,
+        strategy:curStrat,threshold:thresh})});
+    const d=await r.json();
+    if(d.error){
+      document.getElementById('bt-err').style.display='block';
+      document.getElementById('bt-err').textContent=d.error;
+      document.getElementById('bt-ovl').classList.add('hid');
+      document.getElementById('bt-load-btn').disabled=false;
+      return;
+    }
+    btCandles=d.candles; btSigs=d.signals; btScores=d.scores;
+    btStops=d.stops; btTargets=d.targets; btInds=d.inds;
+    btReset();
+    document.getElementById('bt-ovl').classList.add('hid');
+    document.getElementById('bt-load-btn').disabled=false;
+    document.getElementById('bt-play').disabled=false;
+    document.getElementById('bt-reset').disabled=false;
+  }catch(e){
+    document.getElementById('bt-err').style.display='block';
+    document.getElementById('bt-err').textContent='Error: '+e.message;
+    document.getElementById('bt-ovl').classList.add('hid');
+    document.getElementById('bt-load-btn').disabled=false;
+  }
+}
+function btPlay(){
+  if(btIdx>=btCandles.length){btReset();return;}
+  btOn=true;
+  document.getElementById('bt-play').classList.add('on');
+  document.getElementById('bt-pause').disabled=false;
+  const spd=BT_SPEED[document.getElementById('bt-spd').value];
+  btTimer=setInterval(btStep,spd);
+}
+function btPause(){
+  btOn=false; clearInterval(btTimer);
+  document.getElementById('bt-play').classList.remove('on');
+}
+function btReset(){
+  btPause(); btIdx=0; btEq=btCap; btPos=null;
+  btTrd=0;btWin=0;btLos=0;btGross=0;btChg=0;btTax=0;btNet=0;btBrk=0;btSTT=0;
+  btMrk=[]; btTrCount=0;
+  btCS.setData([]); btCS.setMarkers([]);
+  btSetupLines();
+  document.getElementById('bt-tbody').innerHTML='<tr><td colspan="12" style="text-align:center;color:var(--mt);padding:10px;">Press ▶ Play</td></tr>';
+  ['btt1','btt2','btt3','btt4','btt5','btt6'].forEach(id=>document.getElementById(id).textContent='₹0');
+  btUpdStats(); btProgUpd();
+  document.getElementById('bt-pause').disabled=true;
+}
+function btStep(){
+  if(btIdx>=btCandles.length){btPause();return;}
+  const c=btCandles[btIdx],i=btIdx,inds=btInds;
+  btCS.update(c);
+  if(btL1&&inds.vwap&&inds.vwap[i]!=null) btL1.update({time:c.time,value:inds.vwap[i]});
+  if(btL2&&inds.e5&&inds.e5[i]!=null)   btL2.update({time:c.time,value:inds.e5[i]});
+  if(btBBU&&inds.bbu&&inds.bbu[i]!=null) btBBU.update({time:c.time,value:inds.bbu[i]});
+  if(btBBL&&inds.bbl&&inds.bbl[i]!=null) btBBL.update({time:c.time,value:inds.bbl[i]});
+  const sig=btSigs[i];
+  const stopP=btStops?btStops[i]:null;
+  const tgtP=btTargets?btTargets[i]:null;
+  if(sig==='BUY'&&!btPos){
+    const qty=Math.max(1,Math.floor(btEq/c.close));
+    if(qty>0&&btEq>=qty*c.close){
+      btPos={price:c.close,qty,idx:i,date:new Date(c.time*1000),val:qty*c.close,stop:stopP,target:tgtP};
+      const ch=btCalcChg(btPos.val,btPos.val,btPos.date,btPos.date);
+      btEq-=btPos.val+ch.total/2; btTrd++;
+      btMrk.push({time:c.time,position:'belowBar',color:'#00e676',shape:'arrowUp',text:'BUY ₹'+f2(c.close)});
+      btCS.setMarkers([...btMrk]);
+      btAddRow('BUY',c.time,c.close,qty,btPos.val,{brok:ch.brok/2,stt:ch.stt/2,total:ch.total/2},null,btEq+btPos.qty*c.close,stopP,tgtP);
+    }
+  } else if(sig==='SELL'&&btPos){
+    const sv=btPos.qty*c.close;
+    const ch=btCalcChg(btPos.val,sv,btPos.date,new Date(c.time*1000));
+    btEq+=sv-ch.total-ch.cg_tax;
+    if(ch.net>=0) btWin++; else btLos++;
+    btGross+=ch.gross;btChg+=ch.total;btTax+=ch.cg_tax;btNet+=ch.net;btBrk+=ch.brok;btSTT+=ch.stt;
+    btMrk.push({time:c.time,position:'aboveBar',color:'#ff3d57',shape:'arrowDown',text:'SELL ₹'+f2(c.close)});
+    btCS.setMarkers([...btMrk]);
+    btAddRow('SELL',c.time,c.close,btPos.qty,sv,ch,ch.gross,btEq,null,null);
+    btUpdTots(); btPos=null;
+  } else if(btPos&&stopP&&c.close<=btPos.stop){
+    // SL hit
+    const sv=btPos.qty*btPos.stop;
+    const ch=btCalcChg(btPos.val,sv,btPos.date,new Date(c.time*1000));
+    btEq+=sv-ch.total-ch.cg_tax; btLos++;
+    btGross+=ch.gross;btChg+=ch.total;btTax+=ch.cg_tax;btNet+=ch.net;
+    btMrk.push({time:c.time,position:'aboveBar',color:'#ff6600',shape:'arrowDown',text:'SL ₹'+f2(btPos.stop)});
+    btCS.setMarkers([...btMrk]);
+    btAddRow('SL',c.time,btPos.stop,btPos.qty,sv,ch,ch.gross,btEq,null,null);
+    btUpdTots(); btPos=null;
+  }
+  btUpdStats(btPos?btEq+btPos.qty*c.close:btEq);
+  btIdx++; btProgUpd();
+}
+function btCalcChg(bv,sv,bd,sd){
+  const bb=Math.max(Math.min(0.001*bv,20),5),sb=Math.max(Math.min(0.001*sv,20),5),bk=bb+sb;
+  const stt=0.001*bv+0.001*sv,exc=0.0000325*(bv+sv),sebi=0.000001*(bv+sv);
+  const stamp=0.00015*bv,gst=0.18*(bk+exc+sebi),dp=20,tot=bk+stt+exc+sebi+stamp+gst+dp;
+  const gross=sv-bv,days=bd&&sd?Math.floor((sd-bd)/864e5):0;
+  let cg_tax=0,cg_type='',cg_rate=0;
+  if(gross>0){if(days<365){cg_type='STCG';cg_rate=0.20;cg_tax=gross*0.20*1.04;}
+    else{cg_type='LTCG';cg_rate=0.125;cg_tax=Math.max(0,gross-125000)*0.125*1.04;}}
+  return{brok:+bk.toFixed(2),stt:+stt.toFixed(2),total:+tot.toFixed(2),
+    gross:+gross.toFixed(2),cg_type,cg_rate_pct:+(cg_rate*100).toFixed(1),
+    cg_tax:+cg_tax.toFixed(2),net:+(gross-tot-cg_tax).toFixed(2),days};
+}
+function btAddRow(type,dt,px,qty,val,ch,gp,eq,stop,target){
+  const tb=document.getElementById('bt-tbody');
+  if(!btTrCount) tb.innerHTML='';
+  btTrCount++;
+  const isSell=type==='SELL'||type==='SL';
+  const row=document.createElement('tr');
+  const d=typeof dt==='number'?new Date(dt*1000):new Date(dt);
+  const ds=d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'2-digit'});
+  const gStr=isSell&&gp!=null?`<span class="${gp>=0?'pp':'np'}">${gp>=0?'+':''}₹${f2(gp)}</span>`:'—';
+  const nStr=isSell?`<span class="${(ch.net||0)>=0?'pp':'np'}">${(ch.net||0)>=0?'+':''}₹${f2(ch.net||0)}</span>`:'—';
+  const tStr=isSell?`<span style="color:var(--or)">-₹${f2(ch.cg_tax||0)}</span>`:'—';
+  row.innerHTML=`<td style="color:var(--mt)">${btTrCount}</td>
+    <td><span class="${type==='BUY'?'tbt':'tts'}">${type}</span></td>
+    <td style="font-size:8px">${ds}</td><td>₹${f2(px)}</td><td>${qty}</td>
+    <td style="color:var(--rd);font-size:8px">${stop?'₹'+f2(stop):'—'}</td>
+    <td style="color:var(--gn);font-size:8px">${target?'₹'+f2(target):'—'}</td>
+    <td class="neg">-₹${f2(ch.total||0)}</td><td>${gStr}</td><td>${tStr}</td>
+    <td>${nStr}</td><td style="color:var(--ac)">₹${f2(eq)}</td>`;
+  tb.prepend(row);
+}
+function btUpdTots(){
+  document.getElementById('btt1').textContent='₹'+f2(btBrk);
+  document.getElementById('btt2').textContent='₹'+f2(btSTT);
+  document.getElementById('btt3').textContent='₹'+f2(btChg);
+  document.getElementById('btt4').textContent='₹'+f2(btTax);
+  const t5=document.getElementById('btt5'); t5.textContent=(btGross>=0?'+':'')+' ₹'+f2(btGross); t5.style.color=btGross>=0?'var(--gn)':'var(--rd)';
+  const t6=document.getElementById('btt6'); t6.textContent=(btNet>=0?'+':'')+' ₹'+f2(btNet); t6.style.color=btNet>=0?'var(--gd)':'var(--rd)';
+}
+function btUpdStats(eq){
+  eq=eq||btCap;
+  const g=document.getElementById('btg-gross'); g.textContent=(btGross>=0?'+':'')+' ₹'+f2(btGross); g.className='sv '+(btGross>=0?'pos':'neg');
+  document.getElementById('btg-chg').textContent='-₹'+f2(btChg);
+  const n=document.getElementById('btg-net'); n.textContent=(btNet>=0?'+':'')+' ₹'+f2(btNet); n.style.color=btNet>=0?'var(--gd)':'var(--rd)';
+  const wr=btTrd>0?(btWin/btTrd*100):0;
+  const w=document.getElementById('btg-wr'); w.textContent=btTrd>0?wr.toFixed(0)+'%':'—'; w.className='sv '+(wr>=50?'pos':'neg');
+  document.getElementById('btg-trd').textContent=btTrd;
+  document.getElementById('btg-sig').textContent=btTrCount;
+}
+function btProgUpd(){
+  const t=btCandles.length||1,p=(btIdx/t*100).toFixed(1);
+  document.getElementById('bt-pf').style.width=p+'%';
+  document.getElementById('bt-pt').textContent=btIdx+' / '+t+' candles · '+p+'%';
 }
 
 // ── Save / load ────────────────────────────────────
@@ -1347,28 +1670,77 @@ def api_save():
 @app.route('/api/history')
 def api_history(): return jsonify(load_hist())
 
+@app.route('/api/backtest_hist', methods=['POST'])
+def api_backtest_hist():
+    """Historical backtest with date range — for the built-in backtest modal."""
+    try:
+        b        = request.json
+        sym      = b['symbol']
+        start    = b.get('start', '2024-01-01')
+        end      = b.get('end',   '2025-01-01')
+        tf       = b.get('timeframe', '1d')
+        strategy = b.get('strategy', 'smart_combo')
+        params   = {k: v for k, v in b.items() if v is not None}
+
+        TF_MAP = {
+            '1m':  {'p': '7d',  'use_period': True},
+            '5m':  {'p': '60d', 'use_period': True},
+            '15m': {'p': '60d', 'use_period': True},
+            '30m': {'p': '60d', 'use_period': True},
+            '60m': {'p': None,  'use_period': False},
+            '1d':  {'p': None,  'use_period': False},
+            '1wk': {'p': None,  'use_period': False},
+        }
+        cfg = TF_MAP.get(tf, {'use_period': False, 'p': None})
+
+        if cfg['use_period']:
+            data = yf.download(sym, period=cfg['p'], interval=tf,
+                               auto_adjust=True, progress=False)
+        else:
+            data = yf.download(sym, start=start, end=end, interval=tf,
+                               auto_adjust=True, progress=False)
+
+        if isinstance(data.columns, pd.MultiIndex):
+            data.columns = data.columns.get_level_values(0)
+        if data.empty:
+            return jsonify({'error': f'No data for {sym}. Check ticker and date range.'})
+
+        signals, scores, sub_sigs, stops, targets, inds = compute_smart_signals(
+            data, strategy, params)
+
+        candles = []
+        for idx, row in data.iterrows():
+            candles.append(dict(
+                time  = int(idx.timestamp()),
+                open  = round(float(row['Open']),  2),
+                high  = round(float(row['High']),  2),
+                low   = round(float(row['Low']),   2),
+                close = round(float(row['Close']), 2),
+            ))
+
+        def cl(lst):
+            if lst is None: return None
+            return [None if (v is None or (isinstance(v, float) and np.isnan(v)))
+                    else round(float(v), 4) for v in lst]
+
+        inds_out = {k: cl(v) if isinstance(v, list) else v for k, v in inds.items()}
+
+        return jsonify({
+            'candles':  candles,
+            'signals':  signals,
+            'scores':   scores,
+            'stops':    cl(stops),
+            'targets':  cl(targets),
+            'inds':     inds_out,
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({'error': str(e), 'trace': traceback.format_exc()})
+
 if __name__ == '__main__':
-    import webbrowser, threading, time as _t
-    def ob():
-        _t.sleep(1.2); webbrowser.open('http://localhost:5052')
-    threading.Thread(target=ob, daemon=True).start()
-    print("="*60)
-    print("  ⚡ AlgoScalp Pro — Smart Algo Scalping Bot")
-    print()
-    print("  5 Strategies:")
-    print("    1. VWAP Pullback     — Best for Nifty/BankNifty")
-    print("    2. EMA Ribbon 5-8-13 — Momentum entry")
-    print("    3. BB Squeeze        — Volatility breakout")
-    print("    4. MACD Zero Cross   — Trend change")
-    print("    5. SMART COMBO ★    — All combined, highest win rate")
-    print()
-    print("  Built-in Risk Management:")
-    print("    • ATR Stop Loss + Target (1:1.33 R:R)")
-    print("    • Max daily loss limit (auto-stop)")
-    print("    • Max trades per day filter")
-    print("    • Market time filter (9:20-11:30, 13:30-15:00 IST)")
-    print("    • Position sizing by risk %")
-    print()
-    print("  Open: http://localhost:5052")
-    print("="*60)
-  bt.plot(filename=f"{symbol}_report.html", open_browser=False)
+    import os
+    port = int(os.environ.get('PORT', 5052))
+    print("=" * 60)
+    print("  AlgoScalp Pro — Starting on port", port)
+    print("=" * 60)
+    app.run(debug=False, host='0.0.0.0', port=port)
